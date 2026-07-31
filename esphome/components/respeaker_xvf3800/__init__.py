@@ -28,6 +28,9 @@ CONF_MD5 = "md5"
 CONF_ON_BEGIN = "on_begin"
 CONF_ON_END = "on_end"
 CONF_ON_PROGRESS = "on_progress"
+CONF_RESID = "resid"
+CONF_CMD = "cmd"
+CONF_VALUE = "value"
 
 DOMAIN = "respeaker_xvf3800"
 
@@ -35,6 +38,15 @@ DOMAIN = "respeaker_xvf3800"
 respeaker_xvf3800_ns = cg.esphome_ns.namespace('respeaker_xvf3800')
 RespeakerXVF3800 = respeaker_xvf3800_ns.class_('RespeakerXVF3800', cg.Component, i2c.I2CDevice)
 RespeakerXVF3800FlashAction = respeaker_xvf3800_ns.class_("RespeakerXVF3800FlashAction", automation.Action)
+RespeakerXVF3800SetControlParamFloatAction = respeaker_xvf3800_ns.class_(
+    "RespeakerXVF3800SetControlParamFloatAction", automation.Action
+)
+RespeakerXVF3800SaveConfigurationAction = respeaker_xvf3800_ns.class_(
+    "RespeakerXVF3800SaveConfigurationAction", automation.Action
+)
+RespeakerXVF3800ClearConfigurationAction = respeaker_xvf3800_ns.class_(
+    "RespeakerXVF3800ClearConfigurationAction", automation.Action
+)
 
 MuteSwitch = respeaker_xvf3800_ns.class_('MuteSwitch', switch.Switch, cg.PollingComponent)
 DFUVersionTextSensor = respeaker_xvf3800_ns.class_('DFUVersionTextSensor', text_sensor.TextSensor, cg.PollingComponent)
@@ -148,6 +160,68 @@ async def respeaker_xxvf3800_flash_action_to_code(config, action_id, template_ar
     var = cg.new_Pvariable(action_id, template_arg, paren)
 
     return var
+
+
+# Generic control-parameter write (float) — resid/cmd/value follow the same
+# protocol as xvf_host.py's PARAMETERS table (e.g. AUDIO_MGR_MIC_GAIN = resid 35,
+# cmd 0; PP_AGCMAXGAIN = resid 17, cmd 11). See set_control_param_float() in
+# respeaker_xvf3800.h for why this exists (USB control interface unavailable on
+# the "With Case" hardware variant).
+SET_CONTROL_PARAM_FLOAT_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(RespeakerXVF3800),
+        cv.Required(CONF_RESID): cv.templatable(cv.uint8_t),
+        cv.Required(CONF_CMD): cv.templatable(cv.uint8_t),
+        cv.Required(CONF_VALUE): cv.templatable(cv.float_),
+    }
+)
+
+
+@automation.register_action(
+    "respeaker_xvf3800.set_control_param_float",
+    RespeakerXVF3800SetControlParamFloatAction,
+    SET_CONTROL_PARAM_FLOAT_ACTION_SCHEMA,
+)
+async def respeaker_xvf3800_set_control_param_float_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_RESID], args, cg.uint8)
+    cg.add(var.set_resid(template_))
+    template_ = await cg.templatable(config[CONF_CMD], args, cg.uint8)
+    cg.add(var.set_cmd(template_))
+    template_ = await cg.templatable(config[CONF_VALUE], args, float)
+    cg.add(var.set_value(template_))
+    return var
+
+
+SIMPLE_RESPEAKER_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(RespeakerXVF3800),
+    }
+)
+
+
+@automation.register_action(
+    "respeaker_xvf3800.save_configuration",
+    RespeakerXVF3800SaveConfigurationAction,
+    SIMPLE_RESPEAKER_ACTION_SCHEMA,
+)
+async def respeaker_xvf3800_save_configuration_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    return var
+
+
+@automation.register_action(
+    "respeaker_xvf3800.clear_configuration",
+    RespeakerXVF3800ClearConfigurationAction,
+    SIMPLE_RESPEAKER_ACTION_SCHEMA,
+)
+async def respeaker_xvf3800_clear_configuration_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    return var
+
 
 # This function is called by ESPHome to generate the C++ code for the component
 async def to_code(config):

@@ -14,6 +14,42 @@ template<typename... Ts> class RespeakerXVF3800FlashAction : public Action<Ts...
  protected:
   RespeakerXVF3800 *parent_;
 };
+
+// Generic control-parameter write (float) — see set_control_param_float() in
+// respeaker_xvf3800.h for why this exists (USB control interface unavailable on
+// the "With Case" hardware variant).
+template<typename... Ts> class RespeakerXVF3800SetControlParamFloatAction : public Action<Ts...> {
+ public:
+  RespeakerXVF3800SetControlParamFloatAction(RespeakerXVF3800 *parent) : parent_(parent) {}
+  TEMPLATABLE_VALUE(uint8_t, resid)
+  TEMPLATABLE_VALUE(uint8_t, cmd)
+  TEMPLATABLE_VALUE(float, value)
+  void play(Ts... x) override {
+    this->parent_->set_control_param_float(this->resid_.value(x...), this->cmd_.value(x...),
+                                            this->value_.value(x...));
+  }
+
+ protected:
+  RespeakerXVF3800 *parent_;
+};
+
+template<typename... Ts> class RespeakerXVF3800SaveConfigurationAction : public Action<Ts...> {
+ public:
+  RespeakerXVF3800SaveConfigurationAction(RespeakerXVF3800 *parent) : parent_(parent) {}
+  void play(Ts... x) override { this->parent_->save_configuration(); }
+
+ protected:
+  RespeakerXVF3800 *parent_;
+};
+
+template<typename... Ts> class RespeakerXVF3800ClearConfigurationAction : public Action<Ts...> {
+ public:
+  RespeakerXVF3800ClearConfigurationAction(RespeakerXVF3800 *parent) : parent_(parent) {}
+  void play(Ts... x) override { this->parent_->clear_configuration(); }
+
+ protected:
+  RespeakerXVF3800 *parent_;
+};
 #ifdef USE_RESPEAKER_XVF3800_STATE_CALLBACK
 class DFUStartTrigger : public Trigger<> {
  public:

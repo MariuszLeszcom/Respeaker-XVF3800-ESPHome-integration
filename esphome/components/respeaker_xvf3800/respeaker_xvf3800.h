@@ -49,6 +49,12 @@ const uint8_t AEC_AZIMUTH_VALUES_CMD = 75;
 const uint8_t AEC_FIXEDBEAMS_ONOFF_CMD = 37;
 const uint8_t AEC_FIXEDBEAMS_AZIMUTH_CMD = 81;
 
+// APPLICATION_SERVICER_RESID commands (resid 48 in xvf_host.py's PARAMETERS table)
+// — VERSION, SAVE_CONFIGURATION, CLEAR_CONFIGURATION and similar chip-wide commands.
+const uint8_t APPLICATION_SERVICER_RESID = 48;
+const uint8_t APPLICATION_SERVICER_RESID_SAVE_CONFIGURATION = 9;
+const uint8_t APPLICATION_SERVICER_RESID_CLEAR_CONFIGURATION = 10;
+
 const uint8_t RESID_LED = 0x0C;
 const uint8_t RESID_DFU_VERSION = 0xFE;
 const uint8_t I2C_COMMAND_READ_BIT = 0x80;
@@ -242,6 +248,21 @@ class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
   // then release it. Intended to be called from voice_assistant lambdas.
   void lock_beam();
   void unlock_beam();
+
+  // Generic control-parameter write (float) — same resid/cmd/payload protocol as
+  // xvf_host.py's PARAMETERS table (e.g. AUDIO_MGR_MIC_GAIN = resid 35, cmd 0;
+  // PP_AGCMAXGAIN = resid 17, cmd 11), sent over I2C instead of USB. Added because
+  // the "USB 4-Mic Array With Case" hardware variant doesn't expose the XVF3800's
+  // USB control interface in the enclosure (confirmed empirically: the device never
+  // enumerates over USB), so xvf_host itself can't reach it — this lets HA tune
+  // those parameters at runtime via the same I2C path already used for mute/LED.
+  void set_control_param_float(uint8_t resid, uint8_t cmd, float value);
+
+  // SAVE_CONFIGURATION / CLEAR_CONFIGURATION (APPLICATION_SERVICER_RESID) — persist
+  // (or revert) whatever's currently set, including via set_control_param_float
+  // above, to the chip's own flash. Survives ESP32 OTA reflashes (different chip).
+  void save_configuration();
+  void clear_configuration();
 
   // Setters for child components
   void set_mute_switch(MuteSwitch *mute_switch) { mute_switch_ = mute_switch; }

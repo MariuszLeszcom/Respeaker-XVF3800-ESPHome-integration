@@ -483,6 +483,27 @@ void RespeakerXVF3800::unlock_beam() {
   ESP_LOGI(TAG, "Beam lock released");
 }
 
+void RespeakerXVF3800::set_control_param_float(uint8_t resid, uint8_t cmd, float value) {
+  uint8_t payload[sizeof(float)];
+  memcpy(payload, &value, sizeof(float));
+  this->xmos_write_bytes(resid, cmd, payload, sizeof(payload));
+  ESP_LOGI(TAG, "set_control_param_float: resid=%u cmd=%u value=%f", resid, cmd, value);
+}
+
+void RespeakerXVF3800::save_configuration() {
+  uint8_t payload[1] = {1};
+  this->xmos_write_bytes(APPLICATION_SERVICER_RESID, APPLICATION_SERVICER_RESID_SAVE_CONFIGURATION, payload,
+                          sizeof(payload));
+  ESP_LOGI(TAG, "Saved XVF3800 configuration to flash");
+}
+
+void RespeakerXVF3800::clear_configuration() {
+  uint8_t payload[1] = {1};
+  this->xmos_write_bytes(APPLICATION_SERVICER_RESID, APPLICATION_SERVICER_RESID_CLEAR_CONFIGURATION, payload,
+                          sizeof(payload));
+  ESP_LOGI(TAG, "Cleared XVF3800 configuration to factory defaults");
+}
+
 void RespeakerXVF3800::xmos_write_bytes(uint8_t resid, uint8_t cmd, const uint8_t *value, uint8_t write_byte_num) {
   uint8_t payload[3 + 255];
   payload[0] = resid;
