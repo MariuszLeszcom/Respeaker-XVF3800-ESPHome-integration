@@ -24,7 +24,11 @@ template<typename... Ts> class RespeakerXVF3800SetControlParamFloatAction : publ
   TEMPLATABLE_VALUE(uint8_t, resid)
   TEMPLATABLE_VALUE(uint8_t, cmd)
   TEMPLATABLE_VALUE(float, value)
-  void play(Ts... x) override {
+  // Base Action<Ts...>::play is `virtual void play(const Ts &...x)` — must match
+  // exactly (const Ts&..., not Ts...) or this silently fails to override it,
+  // leaving the base's pure virtual unsatisfied (abstract class instantiation
+  // error at the call site instead of a signature-mismatch error here).
+  void play(const Ts &...x) override {
     this->parent_->set_control_param_float(this->resid_.value(x...), this->cmd_.value(x...),
                                             this->value_.value(x...));
   }
@@ -36,7 +40,7 @@ template<typename... Ts> class RespeakerXVF3800SetControlParamFloatAction : publ
 template<typename... Ts> class RespeakerXVF3800SaveConfigurationAction : public Action<Ts...> {
  public:
   RespeakerXVF3800SaveConfigurationAction(RespeakerXVF3800 *parent) : parent_(parent) {}
-  void play(Ts... x) override { this->parent_->save_configuration(); }
+  void play(const Ts &...x) override { this->parent_->save_configuration(); }
 
  protected:
   RespeakerXVF3800 *parent_;
@@ -45,7 +49,7 @@ template<typename... Ts> class RespeakerXVF3800SaveConfigurationAction : public 
 template<typename... Ts> class RespeakerXVF3800ClearConfigurationAction : public Action<Ts...> {
  public:
   RespeakerXVF3800ClearConfigurationAction(RespeakerXVF3800 *parent) : parent_(parent) {}
-  void play(Ts... x) override { this->parent_->clear_configuration(); }
+  void play(const Ts &...x) override { this->parent_->clear_configuration(); }
 
  protected:
   RespeakerXVF3800 *parent_;
