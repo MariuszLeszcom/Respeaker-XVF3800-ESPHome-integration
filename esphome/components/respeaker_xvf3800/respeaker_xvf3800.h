@@ -6,9 +6,7 @@
 #include "esphome/components/switch/switch.h"
 #include "esphome/components/number/number.h"
 #include "esphome/components/select/select.h"
-#ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
-#endif
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -188,6 +186,19 @@ class LEDBeamSensor : public sensor::Sensor, public PollingComponent {
   RespeakerXVF3800 *parent_{nullptr};
 };
 
+// BeamLockedBinarySensor class to report whether lock_beam()/unlock_beam() is
+// currently engaged (same polling pattern as LEDBeamSensor above).
+class BeamLockedBinarySensor : public binary_sensor::BinarySensor, public PollingComponent {
+ public:
+  void set_parent(RespeakerXVF3800 *parent) { parent_ = parent; }
+  void setup() override;
+  void update() override;
+  void dump_config() override;
+
+ protected:
+  RespeakerXVF3800 *parent_{nullptr};
+};
+
 // --- Main Hub Class ---
 
 class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
@@ -248,6 +259,7 @@ class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
   // then release it. Intended to be called from voice_assistant lambdas.
   void lock_beam();
   void unlock_beam();
+  bool is_beam_locked() const { return this->beam_locked_; }
 
   // Generic control-parameter write (float) — same resid/cmd/payload protocol as
   // xvf_host.py's PARAMETERS table (e.g. AUDIO_MGR_MIC_GAIN = resid 35, cmd 0;
@@ -268,6 +280,7 @@ class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
   void set_mute_switch(MuteSwitch *mute_switch) { mute_switch_ = mute_switch; }
   void set_dfu_version_sensor(DFUVersionTextSensor *dfu_version_sensor) { dfu_version_sensor_ = dfu_version_sensor; }
   void set_led_beam_sensor(LEDBeamSensor *led_beam_sensor) { led_beam_sensor_ = led_beam_sensor; }
+  void set_beam_locked_sensor(BeamLockedBinarySensor *beam_locked_sensor) { beam_locked_sensor_ = beam_locked_sensor; }
 
  protected:
 #ifdef USE_RESPEAKER_XVF3800_STATE_CALLBACK
@@ -318,6 +331,7 @@ class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
   MuteSwitch *mute_switch_{nullptr};
   DFUVersionTextSensor *dfu_version_sensor_{nullptr};
   LEDBeamSensor *led_beam_sensor_{nullptr};
+  BeamLockedBinarySensor *beam_locked_sensor_{nullptr};
 
   // Beam-lock state. While true, read_led_beam_direction() reads beam-1 (the
   // pinned fixed beam) from the chip instead of the auto-select beam, so the

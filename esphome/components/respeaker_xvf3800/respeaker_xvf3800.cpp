@@ -638,5 +638,26 @@ void LEDBeamSensor::update() {
   }
 }
 
+// --- BeamLockedBinarySensor Component ---
+void BeamLockedBinarySensor::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up Beam Locked Binary Sensor...");
+}
+
+void BeamLockedBinarySensor::dump_config() {
+  LOG_BINARY_SENSOR("", "Respeaker Beam Locked", this);
+}
+
+void BeamLockedBinarySensor::update() {
+  if (this->parent_ == nullptr) {
+    ESP_LOGW(TAG, "BeamLockedBinarySensor parent not set");
+    return;
+  }
+
+  bool locked = this->parent_->is_beam_locked();
+  if (!this->has_state() || this->state != locked) {
+    this->publish_state(locked);
+  }
+}
+
 }  // namespace respeaker_xvf3800
 }  // namespace esphome

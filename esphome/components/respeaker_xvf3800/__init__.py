@@ -3,7 +3,7 @@ from pathlib import Path
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation, core, external_files
-from esphome.components import i2c, switch, text_sensor, sensor, number, select
+from esphome.components import i2c, switch, text_sensor, sensor, number, select, binary_sensor
 from esphome.const import (
     CONF_ID, 
     CONF_ON_ERROR,
@@ -16,13 +16,14 @@ from esphome.core import HexInt
 
 # Dependency declarations
 DEPENDENCIES = ["i2c"]
-AUTO_LOAD = ["switch", "text_sensor", "sensor", "number", "select"]
+AUTO_LOAD = ["switch", "text_sensor", "sensor", "number", "select", "binary_sensor"]
 CODEOWNERS = ["@formatBCE"]
 
 # Configuration keys
 CONF_MUTE_SWITCH = "mute_switch"
 CONF_DFU_VERSION = "dfu_version"
 CONF_LED_BEAM_SENSOR = "led_beam_sensor"
+CONF_BEAM_LOCKED_SENSOR = "beam_locked_sensor"
 CONF_FIRMWARE = "firmware"
 CONF_MD5 = "md5"
 CONF_ON_BEGIN = "on_begin"
@@ -51,6 +52,9 @@ RespeakerXVF3800ClearConfigurationAction = respeaker_xvf3800_ns.class_(
 MuteSwitch = respeaker_xvf3800_ns.class_('MuteSwitch', switch.Switch, cg.PollingComponent)
 DFUVersionTextSensor = respeaker_xvf3800_ns.class_('DFUVersionTextSensor', text_sensor.TextSensor, cg.PollingComponent)
 LEDBeamSensor = respeaker_xvf3800_ns.class_('LEDBeamSensor', sensor.Sensor, cg.PollingComponent)
+BeamLockedBinarySensor = respeaker_xvf3800_ns.class_(
+    'BeamLockedBinarySensor', binary_sensor.BinarySensor, cg.PollingComponent
+)
 
 DFUEndTrigger = respeaker_xvf3800_ns.class_("DFUEndTrigger", automation.Trigger.template())
 DFUErrorTrigger = respeaker_xvf3800_ns.class_("DFUErrorTrigger", automation.Trigger.template())
@@ -102,6 +106,10 @@ CONFIG_SCHEMA = cv.Schema({
         accuracy_decimals=0,
         unit_of_measurement="",
     ).extend(cv.polling_component_schema("100ms")),
+    cv.Optional(CONF_BEAM_LOCKED_SENSOR): binary_sensor.binary_sensor_schema(
+        BeamLockedBinarySensor,
+        icon="mdi:crosshairs-gps",
+    ).extend(cv.polling_component_schema("500ms")),
     cv.GenerateID(CONF_RAW_DATA_ID): cv.declare_id(cg.uint8),
     cv.Optional(CONF_FIRMWARE): cv.All(
                 {
@@ -253,6 +261,14 @@ async def to_code(config):
         await sensor.register_sensor(led_beam_sensor, config[CONF_LED_BEAM_SENSOR])
         cg.add(var.set_led_beam_sensor(led_beam_sensor))
         cg.add(led_beam_sensor.set_parent(var))
+
+    # Set up beam-locked binary sensor if configured
+    if CONF_BEAM_LOCKED_SENSOR in config:
+        beam_locked_sensor = cg.new_Pvariable(config[CONF_BEAM_LOCKED_SENSOR][CONF_ID])
+        await cg.register_component(beam_locked_sensor, config[CONF_BEAM_LOCKED_SENSOR])
+        await binary_sensor.register_binary_sensor(beam_locked_sensor, config[CONF_BEAM_LOCKED_SENSOR])
+        cg.add(var.set_beam_locked_sensor(beam_locked_sensor))
+        cg.add(beam_locked_sensor.set_parent(var))
 
     if config_fw := config.get(CONF_FIRMWARE):
         firmware_version = config_fw[CONF_VERSION].split(".")
