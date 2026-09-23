@@ -32,6 +32,7 @@ CONF_ON_PROGRESS = "on_progress"
 CONF_RESID = "resid"
 CONF_CMD = "cmd"
 CONF_VALUE = "value"
+CONF_AZIMUTH_OFFSET_RADIANS = "azimuth_offset_radians"
 
 DOMAIN = "respeaker_xvf3800"
 
@@ -237,14 +238,23 @@ async def respeaker_xvf3800_clear_configuration_to_code(config, action_id, templ
     return var
 
 
+LOCK_BEAM_ACTION_SCHEMA = SIMPLE_RESPEAKER_ACTION_SCHEMA.extend(
+    {
+        cv.Optional(CONF_AZIMUTH_OFFSET_RADIANS, default=0.0): cv.templatable(cv.float_),
+    }
+)
+
+
 @automation.register_action(
     "respeaker_xvf3800.lock_beam",
     RespeakerXVF3800LockBeamAction,
-    SIMPLE_RESPEAKER_ACTION_SCHEMA,
+    LOCK_BEAM_ACTION_SCHEMA,
 )
 async def respeaker_xvf3800_lock_beam_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_AZIMUTH_OFFSET_RADIANS], args, float)
+    cg.add(var.set_azimuth_offset_radians(template_))
     return var
 
 

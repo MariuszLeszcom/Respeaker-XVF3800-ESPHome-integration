@@ -64,7 +64,13 @@ template<typename... Ts> class RespeakerXVF3800ClearConfigurationAction : public
 template<typename... Ts> class RespeakerXVF3800LockBeamAction : public Action<Ts...> {
  public:
   RespeakerXVF3800LockBeamAction(RespeakerXVF3800 *parent) : parent_(parent) {}
-  void play(const Ts &...x) override { this->parent_->lock_beam(); }
+  // Optional correction for the raw-azimuth 180° reference-frame mismatch found live
+  // 2026-09-23 (see lock_beam() in respeaker_xvf3800.cpp) — defaults to 0 (no
+  // correction) if the caller doesn't set it.
+  TEMPLATABLE_VALUE(float, azimuth_offset_radians)
+  void play(const Ts &...x) override {
+    this->parent_->lock_beam(this->azimuth_offset_radians_.value(x...));
+  }
 
  protected:
   RespeakerXVF3800 *parent_;

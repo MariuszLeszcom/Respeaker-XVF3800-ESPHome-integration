@@ -453,12 +453,30 @@ int RespeakerXVF3800::read_led_beam_direction() {
   return led_index;
 }
 
-void RespeakerXVF3800::lock_beam() {
+void RespeakerXVF3800::lock_beam(float azimuth_offset_radians) {
   float radians;
   if (!this->read_azimuth_radians_(radians)) {
     ESP_LOGW(TAG, "lock_beam: failed to read current azimuth; not locking");
     return;
   }
+
+  // azimuth_offset_radians: found live 2026-09-23 — read_azimuth_radians_() (default
+  // beam_index=3, the auto-scanning beam) is reported in a reference frame that does
+  // NOT match the physical room: the very same live-calibration test that fixed
+  // sensor.*_voice_beam_direction's LED-ring mapping found a consistent 180°
+  // (6-LED-step) flip (esphome-setup.md §8a globals: led_beam_offset). That
+  // correction was only ever applied on the LED-display path (target_pos =
+  // beam_direction + led_beam_offset in the LED effect script) — this function used
+  // to write the RAW azimuth straight into AEC_FIXEDBEAMSAZIMUTH_VALUES, so the fixed
+  // beam ended up pointed at the same wrong (opposite) direction. Confirmed live: the
+  // caller now passes led_beam_offset converted to radians here so the acoustic lock
+  // uses the same, already-validated correction instead of a second, unverified one.
+  radians += azimuth_offset_radians;
+  // Wrap back into [-pi, pi] — read_azimuth_radians_ returns values in that range
+  // (same convention read_led_beam_direction's degrees/LED-index math assumes), and
+  // the offset above can push it outside that range.
+  while (radians > (float) M_PI) radians -= 2.0f * (float) M_PI;
+  while (radians < -(float) M_PI) radians += 2.0f * (float) M_PI;
 
   // AEC_FIXEDBEAMSAZIMUTH_VALUES is 2 floats (radians): fixed beam 1, fixed beam 2.
   // We point both at the same direction so whichever beam is gated picks up the source.

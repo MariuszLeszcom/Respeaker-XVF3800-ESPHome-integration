@@ -257,7 +257,10 @@ class RespeakerXVF3800 : public i2c::I2CDevice, public Component {
 
   // Beam lock: pin the AEC beam to the current azimuth for the duration of an utterance,
   // then release it. Intended to be called from voice_assistant lambdas.
-  void lock_beam();
+  // azimuth_offset_radians: same correction as globals: led_beam_offset (converted to
+  // radians) — see respeaker_xvf3800.cpp for why the raw chip azimuth needs it too,
+  // not just the LED display. Defaults to 0 for any other caller.
+  void lock_beam(float azimuth_offset_radians = 0.0f);
   void unlock_beam();
   bool is_beam_locked() const { return this->beam_locked_; }
 
