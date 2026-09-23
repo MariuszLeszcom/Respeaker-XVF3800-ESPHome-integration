@@ -54,6 +54,30 @@ template<typename... Ts> class RespeakerXVF3800ClearConfigurationAction : public
  protected:
   RespeakerXVF3800 *parent_;
 };
+
+// lock_beam()/unlock_beam() already existed on RespeakerXVF3800 (used internally by
+// BeamLockedBinarySensor's is_beam_locked() polling) but were never exposed as YAML
+// actions — nothing in any deployment ever called them, so the chip's beamformer
+// never actually locked onto a speaker (confirmed live 2026-09-23: binary_sensor
+// stayed "off" for hours of real use). Added so home-infra's esphome-setup.md can
+// wire lock_beam to voice_assistant's on_listening and unlock_beam to on_end.
+template<typename... Ts> class RespeakerXVF3800LockBeamAction : public Action<Ts...> {
+ public:
+  RespeakerXVF3800LockBeamAction(RespeakerXVF3800 *parent) : parent_(parent) {}
+  void play(const Ts &...x) override { this->parent_->lock_beam(); }
+
+ protected:
+  RespeakerXVF3800 *parent_;
+};
+
+template<typename... Ts> class RespeakerXVF3800UnlockBeamAction : public Action<Ts...> {
+ public:
+  RespeakerXVF3800UnlockBeamAction(RespeakerXVF3800 *parent) : parent_(parent) {}
+  void play(const Ts &...x) override { this->parent_->unlock_beam(); }
+
+ protected:
+  RespeakerXVF3800 *parent_;
+};
 #ifdef USE_RESPEAKER_XVF3800_STATE_CALLBACK
 class DFUStartTrigger : public Trigger<> {
  public:

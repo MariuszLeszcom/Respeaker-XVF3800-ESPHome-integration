@@ -48,6 +48,12 @@ RespeakerXVF3800SaveConfigurationAction = respeaker_xvf3800_ns.class_(
 RespeakerXVF3800ClearConfigurationAction = respeaker_xvf3800_ns.class_(
     "RespeakerXVF3800ClearConfigurationAction", automation.Action
 )
+RespeakerXVF3800LockBeamAction = respeaker_xvf3800_ns.class_(
+    "RespeakerXVF3800LockBeamAction", automation.Action
+)
+RespeakerXVF3800UnlockBeamAction = respeaker_xvf3800_ns.class_(
+    "RespeakerXVF3800UnlockBeamAction", automation.Action
+)
 
 MuteSwitch = respeaker_xvf3800_ns.class_('MuteSwitch', switch.Switch, cg.PollingComponent)
 DFUVersionTextSensor = respeaker_xvf3800_ns.class_('DFUVersionTextSensor', text_sensor.TextSensor, cg.PollingComponent)
@@ -226,6 +232,28 @@ async def respeaker_xvf3800_save_configuration_to_code(config, action_id, templa
     SIMPLE_RESPEAKER_ACTION_SCHEMA,
 )
 async def respeaker_xvf3800_clear_configuration_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    return var
+
+
+@automation.register_action(
+    "respeaker_xvf3800.lock_beam",
+    RespeakerXVF3800LockBeamAction,
+    SIMPLE_RESPEAKER_ACTION_SCHEMA,
+)
+async def respeaker_xvf3800_lock_beam_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    return var
+
+
+@automation.register_action(
+    "respeaker_xvf3800.unlock_beam",
+    RespeakerXVF3800UnlockBeamAction,
+    SIMPLE_RESPEAKER_ACTION_SCHEMA,
+)
+async def respeaker_xvf3800_unlock_beam_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
     return var
